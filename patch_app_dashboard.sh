@@ -1,0 +1,2 @@
+sed -i 's/import Auth from '"'"'\.\/components\/Auth'"'"';/import Auth from '"'"'\.\/components\/Auth'"'"';\nimport DashboardView from '"'"'\.\/components\/DashboardView'"'"';/' src/App.tsx
+sed -i 's/const \[activeId, setActiveId\] = useState<string | null>(null);/const \[activeId, setActiveId\] = useState<string | null>(null);\n  const \[showDashboard, setShowDashboard\] = useState(false);/' src/App.tsx

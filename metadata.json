@@ -1,0 +1,8 @@
+{
+  "name": "Remix Plan de Trabajo Gantt",
+  "description": "Una vista de tabla estilo Excel del plan de trabajo mensual extraído de la imagen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

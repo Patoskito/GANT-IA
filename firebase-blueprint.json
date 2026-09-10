@@ -1,0 +1,10 @@
+{
+  "rules": [
+    {
+      "path": "/initiatives/{initiativeId}",
+      "methods": ["read", "write"],
+      "allow": "request.auth != null"
+    }
+  ],
+  "indexes": []
+}
