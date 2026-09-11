@@ -470,7 +470,10 @@ export default function MainView({
                   Área Iniciativa
                 </th>
                 <th className="px-6 py-4 font-semibold border-b border-gray-200 w-1/5">
-                  Responsable
+                  Responsable 1
+                </th>
+                <th className="px-6 py-4 font-semibold border-b border-gray-200 w-1/5">
+                  Responsable 2
                 </th>
                 <th className="px-6 py-4 font-semibold border-b border-gray-200 text-center w-[130px]">
                   Progreso (%)
@@ -546,6 +549,28 @@ export default function MainView({
                           updateInitiative(
                             init.id,
                             "responsible",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full h-full px-6 py-4 bg-transparent outline-none focus:ring-2 focus:ring-blue-500 text-gray-600 cursor-pointer appearance-none"
+                      >
+                        <option value="" disabled>
+                          Seleccionar...
+                        </option>
+                        {selectResponsableOptions.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="border-b border-gray-200 focus-within:bg-blue-50/50 transition-colors">
+                      <select
+                        value={init.responsible2 || ""}
+                        onChange={(e) =>
+                          updateInitiative(
+                            init.id,
+                            "responsible2",
                             e.target.value,
                           )
                         }
