@@ -9,6 +9,7 @@ import Spreadsheet from './components/Spreadsheet';
 import Auth from './components/Auth';
 import DashboardView from './components/DashboardView';
 import AdminView from './components/AdminView';
+import WeeklyAgenda from './components/WeeklyAgenda';
 import { Initiative } from './types';
 import { useInitiatives } from './hooks/useInitiatives';
 
@@ -19,6 +20,7 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showAgenda, setShowAgenda] = useState(false);
   const [userProfile, setUserProfile] = useState<{name: string, email: string} | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -64,7 +66,13 @@ export default function App() {
         <Auth onLogin={setUserProfile} />
       ) : (
         <>
-          {showDashboard ? (
+          {showAgenda ? (
+            <WeeklyAgenda
+              initiatives={initiatives}
+              userProfile={userProfile}
+              onBack={() => setShowAgenda(false)}
+            />
+          ) : showDashboard ? (
             <DashboardView
               initiatives={initiatives}
               onBack={() => setShowDashboard(false)}
@@ -92,6 +100,7 @@ export default function App() {
               onDelete={deleteInitiative}
               userProfile={userProfile}
               onLogout={handleLogout}
+              onOpenAgenda={() => setShowAgenda(true)}
               onOpenDashboard={() => setShowDashboard(true)}
               onOpenAdmin={() => setShowAdmin(true)}
             />

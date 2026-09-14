@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, ArrowRight, ArrowLeft, Trash2, Archive, RotateCcw, GanttChart, LayoutDashboard, Settings, Search } from "lucide-react";
+import { Plus, ArrowRight, ArrowLeft, Trash2, Archive, RotateCcw, GanttChart, LayoutDashboard, Settings, Search, Calendar } from "lucide-react";
 import { Initiative } from "../types";
 import { getEmptyPhases } from "../data";
 import { db } from '../lib/firebase';
@@ -116,6 +116,7 @@ interface Props {
   onDelete: (id: string) => void;
   userProfile?: { name: string; email: string } | null;
   onLogout?: () => void;
+  onOpenAgenda?: () => void;
   onOpenDashboard?: () => void;
   onOpenAdmin?: () => void;
 }
@@ -130,6 +131,7 @@ export default function MainView({
   onDelete,
   userProfile,
   onLogout,
+  onOpenAgenda,
   onOpenDashboard,
   onOpenAdmin,
 }: Props) {
@@ -198,7 +200,8 @@ export default function MainView({
     const newInit: Initiative = {
       id: `init-${Date.now()}`,
       name: "Nueva Iniciativa",
-      responsible: userProfile?.name || "",
+      responsible: "",
+      responsible2: "",
       startDate: "",
       endDate: "",
       phases: getEmptyPhases(),
@@ -445,6 +448,16 @@ export default function MainView({
                 </button>
               )}
 
+              {onOpenAgenda && (
+                <button
+                  onClick={onOpenAgenda}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 shadow-sm text-sm font-medium"
+                  title="Ver Agenda Semanal"
+                >
+                  <Calendar size={16} /> Agenda Semanal
+                </button>
+              )}
+
               {onOpenDashboard && (
                 <button
                   onClick={onOpenDashboard}
@@ -554,7 +567,7 @@ export default function MainView({
                         }
                         className="w-full h-full px-6 py-4 bg-transparent outline-none focus:ring-2 focus:ring-blue-500 text-gray-600 cursor-pointer appearance-none"
                       >
-                        <option value="" disabled>
+                        <option value="">
                           Seleccionar...
                         </option>
                         {selectResponsableOptions.map((r) => (
@@ -576,7 +589,7 @@ export default function MainView({
                         }
                         className="w-full h-full px-6 py-4 bg-transparent outline-none focus:ring-2 focus:ring-blue-500 text-gray-600 cursor-pointer appearance-none"
                       >
-                        <option value="" disabled>
+                        <option value="">
                           Seleccionar...
                         </option>
                         {selectResponsableOptions.map((r) => (

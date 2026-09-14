@@ -10,5 +10,8 @@ service cloud.firestore {
     match /areas/{areaId} {
       allow read, write: if true;
     }
+    match /weeklyTasks/{taskId} {
+      allow read, write: if true;
+    }
   }
 }

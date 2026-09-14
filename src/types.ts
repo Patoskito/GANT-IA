@@ -47,3 +47,18 @@ export interface Initiative {
   costoHoraIt?: number;
   costoSetup?: number;
 }
+
+export interface WeeklyTask {
+  id: string;
+  description: string;
+  initiativeId: string;
+  responsible: string;
+  status: 'Pendiente' | 'En proceso' | 'Cerrado';
+  weekId: string;
+  createdAt: number;
+  copiedFromWeek?: string;
+  previousDescription?: string;
+  rootTaskId?: string;
+  frozenTraceId?: string;
+  history?: { weekId: string; description: string }[];
+}
