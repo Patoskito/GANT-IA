@@ -451,10 +451,10 @@ export default function MainView({
               {onOpenAgenda && (
                 <button
                   onClick={onOpenAgenda}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 shadow-sm text-sm font-medium"
+                  className="p-2 rounded-lg border transition-colors bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 flex items-center justify-center shadow-sm"
                   title="Ver Agenda Semanal"
                 >
-                  <Calendar size={16} /> Agenda Semanal
+                  <Calendar size={18} />
                 </button>
               )}
 

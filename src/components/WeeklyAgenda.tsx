@@ -204,7 +204,7 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-white border-b border-gray-200 p-4 shadow-sm flex items-center">
+        <div className="bg-white border-b border-gray-200 p-4 shadow-sm flex items-center sticky top-0 z-30">
           <button onClick={onBack} className="p-2 mr-4 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors">
             <ArrowLeft size={20} />
           </button>
@@ -217,7 +217,7 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 shadow-sm flex justify-between items-center shrink-0">
+      <div className="bg-white border-b border-gray-200 p-4 shadow-sm flex justify-between items-center shrink-0 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
