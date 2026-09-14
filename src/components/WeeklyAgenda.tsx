@@ -155,6 +155,7 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
       description: '',
       initiativeId: '',
       responsible: userProfile?.name || '',
+      responsible2: '',
       status,
       weekId: currentWeekId,
       createdAt: Date.now(),
@@ -310,45 +311,47 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
                       }
 
                       return (
-                      <div key={task.id} className={`p-4 rounded-lg shadow-sm border transition-colors group relative ${cardStyle}`}>
+                      <div key={task.id} className={`p-4 rounded-lg shadow-sm border transition-colors group relative flex flex-col min-h-[140px] justify-between ${cardStyle}`}>
                         
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="text-[10px] font-bold text-gray-500 bg-white/60 border border-gray-200/50 px-2 py-0.5 rounded-sm uppercase tracking-wide">
-                            ID: {generateTraceId(task, initiatives)}
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={task.status}
-                              onChange={e => updateTask(task.id, { status: e.target.value as any })}
-                              className="text-xs border border-gray-300 rounded px-2 py-0.5 font-medium outline-none focus:border-blue-500 cursor-pointer"
-                              style={{
-                                backgroundColor: task.status === 'Pendiente' ? '#F3F4F6' : task.status === 'En proceso' ? '#DBEAFE' : '#D1FAE5',
-                                color: task.status === 'Pendiente' ? '#374151' : task.status === 'En proceso' ? '#1E40AF' : '#065F46'
-                              }}
-                            >
-                              {STATUSES.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="text-[10px] font-bold text-gray-500 bg-white/60 border border-gray-200/50 px-2 py-0.5 rounded-sm uppercase tracking-wide">
+                              ID: {generateTraceId(task, initiatives)}
+                            </div>
                             
-                            <button 
-                              onClick={() => setExpandedTasks(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
-                              className="p-1 text-gray-500 hover:bg-gray-200/50 hover:text-gray-700 rounded transition-colors"
-                              title={isExpanded ? "Ocultar detalles" : "Ver detalles"}
-                            >
-                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={task.status}
+                                onChange={e => updateTask(task.id, { status: e.target.value as any })}
+                                className="text-xs border border-gray-300 rounded px-2 py-0.5 font-medium outline-none focus:border-blue-500 cursor-pointer"
+                                style={{
+                                  backgroundColor: task.status === 'Pendiente' ? '#F3F4F6' : task.status === 'En proceso' ? '#DBEAFE' : '#D1FAE5',
+                                  color: task.status === 'Pendiente' ? '#374151' : task.status === 'En proceso' ? '#1E40AF' : '#065F46'
+                                }}
+                              >
+                                {STATUSES.map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                              
+                              <button 
+                                onClick={() => setExpandedTasks(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
+                                className="p-1 text-gray-500 hover:bg-gray-200/50 hover:text-gray-700 rounded transition-colors"
+                                title={isExpanded ? "Ocultar detalles" : "Ver detalles"}
+                              >
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </button>
+                            </div>
                           </div>
-                        </div>
 
-                        <SyncedTextarea
-                          value={task.description}
-                          onChange={e => updateTask(task.id, { description: e.target.value })}
-                          placeholder="Nueva descripción de la tarea..."
-                          className={`w-full text-sm font-medium text-gray-800 outline-none resize-none bg-transparent placeholder-gray-400 ${isExpanded ? 'mb-3' : 'mb-0'}`}
-                          rows={isExpanded ? 2 : 1}
-                        />
+                          <SyncedTextarea
+                            value={task.description}
+                            onChange={e => updateTask(task.id, { description: e.target.value })}
+                            placeholder="Descripción de la tarea..."
+                            className={`w-full text-sm font-medium text-gray-800 outline-none resize-y bg-transparent placeholder-gray-400 min-h-[64px] ${isExpanded ? 'mb-3' : 'mb-0'}`}
+                            rows={3}
+                          />
+                        </div>
 
                         {isExpanded && (
                           <div className="space-y-3 pt-3 border-t border-gray-200/50 mt-1">
@@ -395,18 +398,37 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
                                 </select>
                               </div>
                               
-                              <div className="flex justify-between items-center gap-2">
-                                <select
-                                  value={task.responsible}
-                                  onChange={e => updateTask(task.id, { responsible: e.target.value })}
-                                  className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 text-gray-600 outline-none focus:border-blue-500 bg-white"
-                                >
-                                  <option value="">Seleccionar responsable...</option>
-                                  {registeredUsers.map(u => (
-                                    <option key={u} value={u}>{u}</option>
-                                  ))}
-                                </select>
-                                
+                              <div className="space-y-1.5 pt-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-bold text-gray-900 w-10 shrink-0">R.I.1:</span>
+                                  <select
+                                    value={task.responsible}
+                                    onChange={e => updateTask(task.id, { responsible: e.target.value })}
+                                    className="w-full text-xs font-semibold border border-gray-400 rounded px-2 py-1.5 text-gray-900 outline-none focus:border-blue-500 bg-gray-50"
+                                  >
+                                    <option value="">Seleccionar responsable 1...</option>
+                                    {registeredUsers.map(u => (
+                                      <option key={u} value={u}>{u}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-medium text-gray-600 w-10 shrink-0">R.I.2:</span>
+                                  <select
+                                    value={task.responsible2 || ''}
+                                    onChange={e => updateTask(task.id, { responsible2: e.target.value })}
+                                    className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 text-gray-700 outline-none focus:border-blue-500 bg-white"
+                                  >
+                                    <option value="">Seleccionar responsable 2...</option>
+                                    {registeredUsers.map(u => (
+                                      <option key={u} value={u}>{u}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-end items-center pt-1">
                                 <div className="flex items-center gap-1 shrink-0">
                                   {!isClosed && (
                                     <button 

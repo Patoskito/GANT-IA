@@ -53,6 +53,7 @@ export interface WeeklyTask {
   description: string;
   initiativeId: string;
   responsible: string;
+  responsible2?: string;
   status: 'Pendiente' | 'En proceso' | 'Cerrado';
   weekId: string;
   createdAt: number;
