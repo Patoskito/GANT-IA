@@ -55,6 +55,7 @@ export interface WeeklyTask {
   responsible: string;
   responsible2?: string;
   status: 'Pendiente' | 'En proceso' | 'Cerrado';
+  closeReason?: string;
   weekId: string;
   createdAt: number;
   copiedFromWeek?: string;

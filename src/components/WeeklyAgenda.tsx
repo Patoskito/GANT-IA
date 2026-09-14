@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, Copy, ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Initiative, WeeklyTask } from '../types';
@@ -106,8 +106,11 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
   // States
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterResponsible, setFilterResponsible] = useState("Todos");
+  const [searchQuery, setSearchQuery] = useState("");
   const [registeredUsers, setRegisteredUsers] = useState<string[]>([]);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [closingTask, setClosingTask] = useState<WeeklyTask | null>(null);
+  const [closeReasonText, setCloseReasonText] = useState("");
   const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -142,11 +145,47 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
   };
 
   const currentWeekTasks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return tasks
       .filter(t => t.weekId === currentWeekId)
       .filter(t => filterResponsible === "Todos" || t.responsible === filterResponsible)
+      .filter(t => {
+        if (!query) return true;
+        const traceId = generateTraceId(t, initiatives).toLowerCase();
+        const rawId = (t.id || '').toLowerCase();
+        const desc = (t.description || '').toLowerCase();
+        const prevDesc = (t.previousDescription || '').toLowerCase();
+        const histDesc = (t.history || []).map(h => h.description.toLowerCase()).join(' ');
+        return (
+          traceId.includes(query) ||
+          rawId.includes(query) ||
+          desc.includes(query) ||
+          prevDesc.includes(query) ||
+          histDesc.includes(query)
+        );
+      })
       .sort((a, b) => b.createdAt - a.createdAt);
-  }, [tasks, currentWeekId, filterResponsible]);
+  }, [tasks, currentWeekId, filterResponsible, searchQuery, initiatives]);
+
+  const handleStatusChange = (task: WeeklyTask, newStatus: string) => {
+    if (newStatus === 'Cerrado' && task.status !== 'Cerrado') {
+      setClosingTask(task);
+      setCloseReasonText(task.closeReason || "");
+    } else {
+      updateTask(task.id, { status: newStatus as any });
+    }
+  };
+
+  const handleConfirmClose = () => {
+    if (closingTask) {
+      updateTask(closingTask.id, {
+        status: 'Cerrado',
+        closeReason: closeReasonText
+      });
+      setClosingTask(null);
+      setCloseReasonText("");
+    }
+  };
 
   const handleAddTask = (status: 'Pendiente' | 'En proceso' | 'Cerrado') => {
     const id = `wt-${Date.now()}`;
@@ -233,13 +272,13 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-600">Filtro:</span>
             <select
               value={filterResponsible}
               onChange={e => setFilterResponsible(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-blue-500 bg-white min-w-[150px]"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-blue-500 bg-white min-w-[140px]"
             >
               <option value="Todos">Todos los responsables</option>
               {registeredUsers.map(u => (
@@ -248,7 +287,28 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
             </select>
           </div>
 
-          <div className="flex items-center gap-4 bg-gray-100 p-1.5 rounded-lg border border-gray-200">
+          {/* Search bar for ID and keywords */}
+          <div className="relative flex items-center">
+            <Search size={15} className="absolute left-2.5 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar por ID o texto..."
+              className="pl-8 pr-7 py-1.5 text-sm border border-gray-300 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-[180px] sm:w-[220px] bg-white text-gray-800 placeholder-gray-400 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100"
+                title="Limpiar búsqueda"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 bg-gray-100 p-1 rounded-lg border border-gray-200">
             <button onClick={prevWeek} className="p-1.5 hover:bg-white rounded shadow-sm text-gray-600 transition-all">
               <ChevronLeft size={20} />
             </button>
@@ -322,7 +382,7 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
                             <div className="flex items-center gap-2">
                               <select
                                 value={task.status}
-                                onChange={e => updateTask(task.id, { status: e.target.value as any })}
+                                onChange={e => handleStatusChange(task, e.target.value)}
                                 className="text-xs border border-gray-300 rounded px-2 py-0.5 font-medium outline-none focus:border-blue-500 cursor-pointer"
                                 style={{
                                   backgroundColor: task.status === 'Pendiente' ? '#F3F4F6' : task.status === 'En proceso' ? '#DBEAFE' : '#D1FAE5',
@@ -348,9 +408,16 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
                             value={task.description}
                             onChange={e => updateTask(task.id, { description: e.target.value })}
                             placeholder="Descripción de la tarea..."
-                            className={`w-full text-sm font-medium text-gray-800 outline-none resize-y bg-transparent placeholder-gray-400 min-h-[64px] ${isExpanded ? 'mb-3' : 'mb-0'}`}
+                            className={`w-full text-sm font-medium text-gray-800 outline-none resize-y bg-transparent placeholder-gray-400 min-h-[64px] ${isExpanded || (isClosed && task.closeReason) ? 'mb-3' : 'mb-0'}`}
                             rows={3}
                           />
+
+                          {isClosed && task.closeReason && (
+                            <div className={`text-xs bg-green-100/50 border border-green-200 text-green-800 p-2 rounded-md ${isExpanded ? 'mb-3' : 'mb-0'}`}>
+                              <span className="font-semibold block mb-0.5">Motivo de cierre:</span>
+                              {task.closeReason}
+                            </div>
+                          )}
                         </div>
 
                         {isExpanded && (
@@ -480,6 +547,43 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
               >
                 <Trash2 size={18} />
                 Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close Task Modal */}
+      {closingTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Cerrar Tarea</h3>
+            <p className="text-gray-600 mb-4 text-sm">Por favor, indica el motivo o una breve descripción de cómo/por qué se cerró esta tarea.</p>
+            
+            <textarea
+              value={closeReasonText}
+              onChange={(e) => setCloseReasonText(e.target.value)}
+              placeholder="Ej. Se completó el entregable con éxito..."
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm text-gray-800 outline-none focus:border-blue-500 min-h-[100px] mb-6 resize-y"
+              autoFocus
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setClosingTask(null);
+                  setCloseReasonText("");
+                }}
+                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmClose}
+                disabled={!closeReasonText.trim()}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+              >
+                Confirmar cierre
               </button>
             </div>
           </div>
