@@ -78,6 +78,28 @@ interface Props {
 
 const STATUSES: ('Pendiente' | 'En proceso' | 'Cerrado')[] = ['Pendiente', 'En proceso', 'Cerrado'];
 
+const SyncedTextarea = ({ value, onChange, ...props }: any) => {
+  const [localValue, setLocalValue] = useState(value);
+  const [isFocused, setIsFocused] = useState(false);
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value);
+    }
+  }, [value, isFocused]);
+  return (
+    <textarea
+      value={localValue}
+      onFocus={(e) => { setIsFocused(true); props.onFocus?.(e); }}
+      onBlur={(e) => { setIsFocused(false); props.onBlur?.(e); }}
+      onChange={(e) => {
+        setLocalValue(e.target.value);
+        if (onChange) onChange(e);
+      }}
+      {...props}
+    />
+  );
+};
+
 export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props) {
   const { tasks, loading, addTask, updateTask, deleteTask } = useWeeklyTasks();
   
@@ -320,7 +342,7 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
                           </div>
                         </div>
 
-                        <textarea
+                        <SyncedTextarea
                           value={task.description}
                           onChange={e => updateTask(task.id, { description: e.target.value })}
                           placeholder="Nueva descripción de la tarea..."

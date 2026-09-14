@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings, Shield, Database, Users, Sliders, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Settings, Shield, Database, Users, Sliders, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Initiative } from '../types';
 import { db } from '../lib/firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -77,10 +77,12 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
     name: string;
     email: string;
     role: string;
+    password?: string;
   }
 
   const [appUsers, setAppUsers] = useState<AppUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -91,7 +93,8 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
           id: doc.id,
           name: doc.data().name || '',
           email: doc.data().email || '',
-          role: doc.data().role || 'Usuario'
+          role: doc.data().role || 'Usuario',
+          password: doc.data().password || ''
         }));
         setAppUsers(loadedUsers);
       } catch (error) {
@@ -377,24 +380,27 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Correo</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contraseña</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {usersLoading ? (
                         <tr>
-                          <td colSpan={4} className="py-8 text-center text-sm text-gray-500">
+                          <td colSpan={5} className="py-8 text-center text-sm text-gray-500">
                             Cargando usuarios...
                           </td>
                         </tr>
                       ) : appUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="py-8 text-center text-sm text-gray-500">
+                          <td colSpan={5} className="py-8 text-center text-sm text-gray-500">
                             No hay usuarios registrados
                           </td>
                         </tr>
                       ) : (
-                        appUsers.map((u) => (
+                        appUsers.map((u) => {
+                          const showPass = visiblePasswords[u.id] || false;
+                          return (
                           <tr key={u.id} className="hover:bg-gray-50">
                           <td className="py-3 px-4 text-sm font-medium text-gray-800">{u.name}</td>
                           <td className="py-3 px-4 text-sm text-gray-500">{u.email}</td>
@@ -405,6 +411,21 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                               {u.role === 'Administrador' && <Shield size={10} />}
                               {u.role}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600 font-mono">
+                            <div className="flex items-center gap-2">
+                              <span>{showPass ? (u.password || '—') : '•••••'}</span>
+                              {u.password && (
+                                <button
+                                  type="button"
+                                  onClick={() => setVisiblePasswords(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
+                                  className="text-gray-400 hover:text-gray-600 p-1"
+                                  title={showPass ? "Ocultar contraseña" : "Ver contraseña"}
+                                >
+                                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-right">
                             {u.email !== 'kayme@flesan.com.pe' && (
@@ -417,7 +438,8 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                             )}
                           </td>
                         </tr>
-                        ))
+                        );
+                        })
                       )}
                     </tbody>
                   </table>
