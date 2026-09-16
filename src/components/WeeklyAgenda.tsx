@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, Copy, ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Trash2, Copy, ChevronDown, ChevronUp, Search, X, User } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Initiative, WeeklyTask } from '../types';
@@ -193,7 +193,7 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
       id,
       description: '',
       initiativeId: '',
-      responsible: userProfile?.name || '',
+      responsible: '',
       responsible2: '',
       status,
       weekId: currentWeekId,
@@ -374,9 +374,17 @@ export default function WeeklyAgenda({ onBack, initiatives, userProfile }: Props
                       <div key={task.id} className={`p-4 rounded-lg shadow-sm border transition-colors group relative flex flex-col min-h-[140px] justify-between ${cardStyle}`}>
                         
                         <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="text-[10px] font-bold text-gray-500 bg-white/60 border border-gray-200/50 px-2 py-0.5 rounded-sm uppercase tracking-wide">
-                              ID: {generateTraceId(task, initiatives)}
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col gap-1.5">
+                              <div className="text-[10px] font-bold text-gray-500 bg-white/60 border border-gray-200/50 px-2 py-0.5 rounded-sm uppercase tracking-wide inline-block w-fit">
+                                ID: {generateTraceId(task, initiatives)}
+                              </div>
+                              {task.responsible && (
+                                <div className="flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-100/50 border border-blue-200/50 px-1.5 py-0.5 rounded-sm w-fit" title={`Responsable 1: ${task.responsible}`}>
+                                  <User size={10} />
+                                  <span className="truncate max-w-[100px]">{task.responsible}</span>
+                                </div>
+                              )}
                             </div>
                             
                             <div className="flex items-center gap-2">
