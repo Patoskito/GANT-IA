@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Plus, ArrowRight, ArrowLeft, Trash2, Archive, RotateCcw, GanttChart, LayoutDashboard, Settings, Search, Calendar } from "lucide-react";
 import { Initiative } from "../types";
-import { getEmptyPhases } from "../data";
+import { getEmptyPhases, getDefaultPhases, distributePhaseDates, calculateEndDateFromStart } from "../data";
 import { db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -111,7 +111,7 @@ interface Props {
   setTitle: (s: string) => void;
   initiatives: Initiative[];
   onAdd: (init: Initiative) => void;
-  onUpdate: (id: string, field: keyof Initiative, value: string) => void;
+  onUpdate: (id: string, field: keyof Initiative | Partial<Initiative>, value?: any) => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   userProfile?: { name: string; email: string } | null;
@@ -204,7 +204,7 @@ export default function MainView({
       responsible2: "",
       startDate: "",
       endDate: "",
-      phases: getEmptyPhases(),
+      phases: getDefaultPhases(),
     };
     onAdd(newInit);
   };
@@ -215,6 +215,22 @@ export default function MainView({
     value: string,
   ) => {
     onUpdate(id, field, value);
+  };
+
+  const handleStartDateChange = (id: string, newStartDate: string) => {
+    if (newStartDate) {
+      const calculatedEnd = calculateEndDateFromStart(newStartDate, 9);
+      const init = initiatives.find((i) => i.id === id);
+      const updatedPhases = distributePhaseDates(init?.phases, newStartDate);
+
+      onUpdate(id, {
+        startDate: newStartDate,
+        endDate: calculatedEnd,
+        phases: updatedPhases,
+      });
+      return;
+    }
+    onUpdate(id, "startDate", newStartDate);
   };
 
   const filteredInitiatives = initiatives.filter((init) => {
@@ -665,7 +681,7 @@ export default function MainView({
                         type="date"
                         value={init.startDate}
                         onChange={(e) =>
-                          updateInitiative(init.id, "startDate", e.target.value)
+                          handleStartDateChange(init.id, e.target.value)
                         }
                         className="w-full h-full px-6 py-4 bg-transparent outline-none text-center text-gray-600 focus:ring-2 focus:ring-blue-500 uppercase cursor-text"
                       />

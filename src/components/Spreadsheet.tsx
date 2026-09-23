@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Download, ArrowLeft, Plus, Minus, TrendingUp, X, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { Download, ArrowLeft, Plus, Minus, TrendingUp, X, Link as LinkIcon, ExternalLink, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Initiative, Task, Phase } from '../types';
+import { getDefaultPhases, distributePhaseDates, calculateEndDateFromStart, getPhaseDateRanges } from '../data';
 
 const AutoResizeTextarea = ({ value, onChange, className, minHeight = 40 }: { value: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, className?: string, minHeight?: number }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,18 +90,71 @@ const parseDate = (dateStr: string) => {
   return null;
 };
 
-const formatWeekHeader = (date: Date) => {
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-};
-
 export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [tempLink, setTempLink] = useState(initiative.driveLink || "");
-  const data = initiative.phases;
+  const data = (initiative.phases && initiative.phases.length > 0)
+    ? initiative.phases
+    : getDefaultPhases(initiative.startDate);
 
-  // Timeline Calculations
+  useEffect(() => {
+    if (!initiative.phases || initiative.phases.length === 0) {
+      const defaultPhases = getDefaultPhases(initiative.startDate);
+      const calculatedEnd = initiative.startDate && !initiative.endDate 
+        ? calculateEndDateFromStart(initiative.startDate, 9) 
+        : initiative.endDate;
+      onUpdate({
+        ...initiative,
+        phases: defaultPhases,
+        ...(calculatedEnd ? { endDate: calculatedEnd } : {}),
+      });
+      return;
+    }
+
+    if (initiative.startDate) {
+      const hasAnyTaskDates = initiative.phases.some(p => p.tasks.some(t => Boolean(t.start && t.end)));
+      if (!hasAnyTaskDates) {
+        const distributed = distributePhaseDates(initiative.phases, initiative.startDate);
+        const calculatedEnd = !initiative.endDate 
+          ? calculateEndDateFromStart(initiative.startDate, 9) 
+          : initiative.endDate;
+        onUpdate({
+          ...initiative,
+          phases: distributed,
+          ...(calculatedEnd ? { endDate: calculatedEnd } : {}),
+        });
+      }
+    }
+  }, [initiative.startDate]);
+
+  const handleStartDateChangeInSpreadsheet = (newStartDate: string) => {
+    if (!newStartDate) {
+      onUpdate({ ...initiative, startDate: "" });
+      return;
+    }
+    const newEndDate = calculateEndDateFromStart(newStartDate, 9);
+    const updatedPhases = distributePhaseDates(initiative.phases, newStartDate);
+    onUpdate({
+      ...initiative,
+      startDate: newStartDate,
+      endDate: newEndDate,
+      phases: updatedPhases,
+    });
+  };
+
+  const handleDistributeDates = () => {
+    if (!initiative.startDate) return;
+    const newEndDate = calculateEndDateFromStart(initiative.startDate, 9);
+    const updatedPhases = distributePhaseDates(initiative.phases, initiative.startDate);
+    onUpdate({
+      ...initiative,
+      endDate: newEndDate,
+      phases: updatedPhases,
+    });
+  };
+
+  // Timeline Calculations (for Project Duration)
   let projectStart = parseDate(initiative.startDate);
   let projectEnd = parseDate(initiative.endDate);
 
@@ -127,36 +181,13 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
   }
 
   let durationDays = 0;
-  let days: Date[] = [];
-  let weeks: Date[][] = [];
   if (projectStart && projectEnd) {
     if (projectStart > projectEnd) {
       const temp = projectStart;
       projectStart = projectEnd;
       projectEnd = temp;
     }
-
     durationDays = Math.round((projectEnd.getTime() - projectStart.getTime()) / (1000 * 3600 * 24)) + 1;
-
-    // Expand start to nearest Monday
-    const startMonday = new Date(projectStart);
-    const startDay = startMonday.getDay();
-    startMonday.setDate(startMonday.getDate() - (startDay === 0 ? 6 : startDay - 1));
-
-    // Expand end to nearest Sunday
-    const endSunday = new Date(projectEnd);
-    const endDay = endSunday.getDay();
-    endSunday.setDate(endSunday.getDate() + (endDay === 0 ? 0 : 7 - endDay));
-
-    let curr = new Date(startMonday);
-    while (curr <= endSunday) {
-      days.push(new Date(curr));
-      curr.setDate(curr.getDate() + 1);
-    }
-
-    for (let i = 0; i < days.length; i += 7) {
-      weeks.push(days.slice(i, i + 7));
-    }
   }
 
   const exportToExcel = () => {
@@ -202,19 +233,24 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
   };
 
   const addTask = (phaseId: string) => {
+    const phaseRanges = initiative.startDate ? getPhaseDateRanges(initiative.startDate) : [];
     onUpdate({
       ...initiative,
-      phases: data.map(p => {
+      phases: data.map((p, pIdx) => {
         if (p.id !== phaseId) return p;
+        const defaultDates = (p.tasks[0]?.start && p.tasks[0]?.end)
+          ? { start: p.tasks[0].start, end: p.tasks[0].end }
+          : (phaseRanges[pIdx] || { start: "", end: "" });
+
         return {
           ...p,
           tasks: [...p.tasks, {
             id: `task-${Date.now()}`,
-            name: "Nueva tarea",
+            name: `${pIdx + 1}.${p.tasks.length + 1} Nueva tarea`,
             assignedTo: "",
             progress: 0,
-            start: "",
-            end: ""
+            start: defaultDates.start,
+            end: defaultDates.end
           }]
         };
       })
@@ -365,45 +401,65 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-6">
-          <div className="text-sm text-right flex flex-col gap-1">
+          <div className="text-sm text-right flex flex-col gap-1.5">
             <div className="flex justify-end gap-2 items-center">
               <span className="text-gray-500 font-medium">Días del Proyecto:</span>
               <span className="text-gray-800 font-semibold">{durationDays > 0 ? durationDays : '-'}</span>
             </div>
-            <div className="flex justify-end gap-2 items-center mt-1">
-              <span className="text-gray-500 w-24">Inicio:</span> 
-              <span className="text-gray-800 font-medium w-24 text-right">
-                {initiative.startDate || '-'}
-              </span>
+            <div className="flex justify-end gap-2 items-center">
+              <span className="text-gray-500 text-xs font-semibold">Inicio:</span> 
+              <input
+                type="date"
+                value={initiative.startDate || ""}
+                onChange={(e) => handleStartDateChangeInSpreadsheet(e.target.value)}
+                className="px-2 py-0.5 border border-gray-300 rounded text-xs text-gray-800 bg-white font-medium cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none uppercase shadow-sm"
+                title="Fecha de inicio (recalcula automáticamente a 9 semanas y distribuye las fechas de las 5 fases)"
+              />
             </div>
             <div className="flex justify-end gap-2 items-center">
-              <span className="text-gray-500 w-24">Fin:</span> 
-              <span className="text-gray-800 font-medium w-24 text-right">
-                {initiative.endDate || '-'}
-              </span>
+              <span className="text-gray-500 text-xs font-semibold">Fin (MVP):</span> 
+              <input
+                type="date"
+                value={initiative.endDate || ""}
+                onChange={(e) => onUpdate({ ...initiative, endDate: e.target.value })}
+                className="px-2 py-0.5 border border-gray-300 rounded text-xs text-gray-800 bg-white font-medium cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none uppercase shadow-sm"
+                title="Fecha fin calculada automáticamente"
+              />
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <button 
-              onClick={() => setIsMetricsModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded transition-colors"
-            >
-              <TrendingUp size={16} />
-              Métricas de Negocio
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setIsMetricsModalOpen(true)}
+                className="flex flex-1 items-center justify-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors shadow-sm"
+              >
+                <TrendingUp size={15} />
+                Métricas
+              </button>
+              {initiative.startDate && (
+                <button 
+                  onClick={handleDistributeDates}
+                  className="flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 text-xs font-semibold rounded transition-colors shadow-sm"
+                  title="Alinear automáticamente las fechas de las 5 fases según el plan de 9 semanas"
+                >
+                  <Calendar size={14} />
+                  Alinear 9 Semanas
+                </button>
+              )}
+            </div>
             <div className="flex gap-2">
               <button 
                 onClick={addPhase}
-                className="flex flex-1 items-center justify-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors shadow-sm"
               >
-                <Plus size={16} />
+                <Plus size={15} />
                 Fase
               </button>
               <button 
                 onClick={exportToExcel}
-                className="flex flex-1 items-center justify-center gap-2 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors shadow-sm"
               >
-                <Download size={16} />
+                <Download size={15} />
                 Excel
               </button>
             </div>
@@ -414,39 +470,22 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
       {/* Spreadsheet Container */}
       <div className="flex-1 overflow-hidden p-4 md:p-8 flex flex-col">
         <div className="bg-white border border-gray-300 shadow-sm rounded-sm overflow-auto flex-1 relative">
-          <table className="w-max min-w-full text-left border-collapse text-sm whitespace-nowrap">
+          <table className="w-full min-w-[800px] text-left border-collapse text-sm">
             <thead className="sticky top-0 z-20">
               <tr className="bg-[#5a5a5a] text-white">
-                <th rowSpan={3} className="border border-gray-400 font-semibold px-3 py-2 min-w-[700px]">TAREA</th>
-                <th rowSpan={3} className="border border-gray-400 font-semibold px-3 py-2 text-center min-w-[250px]">ASIGNADO A</th>
-                <th rowSpan={3} className="border border-gray-400 font-semibold px-1 py-2 text-center w-16 min-w-[55px] max-w-[65px] text-xs">PROGRESO</th>
-                <th rowSpan={3} className="border border-gray-400 font-semibold px-3 py-2 text-center min-w-[140px]">INICIO</th>
-                <th rowSpan={3} className="border border-gray-400 font-semibold px-3 py-2 text-center min-w-[140px]">FIN</th>
-                {weeks.map((week, idx) => (
-                  <th key={idx} colSpan={7} className="border border-gray-400 font-semibold px-1 py-1 text-center bg-[#e5e5e5] text-gray-800 text-xs">
-                    {formatWeekHeader(week[0])}
-                  </th>
-                ))}
-              </tr>
-              <tr className="bg-[#f2f2f2] text-gray-800">
-                {days.map((day, idx) => (
-                  <th key={idx} className="border border-gray-400 px-1 py-0.5 text-center text-[10px] w-6 min-w-[24px]">
-                    {day.getDate()}
-                  </th>
-                ))}
-              </tr>
-              <tr className="bg-[#5a5a5a] text-white">
-                {days.map((day, idx) => (
-                  <th key={idx} className="border border-gray-400 px-1 py-0.5 text-center text-[10px] w-6 min-w-[24px]">
-                    {['d','l','m','m','j','v','s'][day.getDay()]}
-                  </th>
-                ))}
+                <th className="border border-gray-400 font-semibold px-4 py-2.5">TAREA</th>
+                <th className="border border-gray-400 font-semibold px-3 py-2.5 text-center w-60 min-w-[180px]">ASIGNADO A</th>
+                <th className="border border-gray-400 font-semibold px-2 py-2.5 text-center w-24 min-w-[80px] text-xs">PROGRESO</th>
+                <th className="border border-gray-400 font-semibold px-3 py-2.5 text-center w-40 min-w-[140px]">INICIO</th>
+                <th className="border border-gray-400 font-semibold px-3 py-2.5 text-center w-40 min-w-[140px]">FIN</th>
               </tr>
             </thead>
             <tbody>
               {data.map((phase, phaseIndex) => {
                 const phaseColors = ["bg-[#B8CCE4]", "bg-[#E6B8B7]", "bg-[#D8E4BC]", "bg-[#CCC0DA]", "bg-[#B7DEE8]"];
                 const phaseBgColor = phaseColors[phaseIndex % phaseColors.length];
+                const phaseStart = phase.tasks[0]?.start;
+                const phaseEnd = phase.tasks[0]?.end;
                 
                 return (
                 <React.Fragment key={phase.id}>
@@ -454,14 +493,22 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
                   <tr className="border-b border-gray-300 group/phase">
                     <td className={`${phaseBgColor} border border-gray-300 p-0 font-bold text-gray-800 relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10`} colSpan={5}>
                       <div className="flex items-center justify-between w-full pr-2">
-                        <SyncedInput
-                          type="text"
-                          value={phase.name}
-                          onChange={(e) => updatePhaseName(phase.id, e.target.value)}
-                          className="w-full px-3 py-2 bg-transparent outline-none font-bold"
-                          title="Editar Fase"
-                        />
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2 flex-1">
+                          <SyncedInput
+                            type="text"
+                            value={phase.name}
+                            onChange={(e) => updatePhaseName(phase.id, e.target.value)}
+                            className="w-full px-3 py-2 bg-transparent outline-none font-bold"
+                            title="Editar Fase"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {phaseStart && phaseEnd && (
+                            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-white/90 text-gray-700 shadow-sm border border-gray-300/70 mr-1 select-none whitespace-nowrap">
+                              <Calendar size={12} className="text-gray-500" />
+                              {phaseStart} &rarr; {phaseEnd}
+                            </span>
+                          )}
                           <button
                             onClick={() => addTask(phase.id)}
                             className="opacity-0 group-hover/phase:opacity-100 p-1 hover:bg-black/10 rounded transition-all text-gray-700 flex-shrink-0"
@@ -479,9 +526,6 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
                         </div>
                       </div>
                     </td>
-                    {days.map((_, i) => (
-                      <td key={i} className="border border-gray-300 bg-white"></td>
-                    ))}
                   </tr>
                   
                   {/* Task Rows */}
@@ -510,7 +554,7 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
                           className="w-full px-3 py-2 bg-transparent outline-none text-gray-700 text-center text-xs sm:text-sm whitespace-normal break-words"
                         />
                       </td>
-                      <td className="border border-gray-300 p-0 text-center relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10 bg-white group-hover:bg-gray-50 transition-colors align-top w-16 min-w-[55px] max-w-[65px]">
+                      <td className="border border-gray-300 p-0 text-center relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10 bg-white group-hover:bg-gray-50 transition-colors align-top w-24 min-w-[80px]">
                         <div 
                           className="absolute inset-y-0 left-0 pointer-events-none transition-all duration-300" 
                           style={{ 
@@ -536,7 +580,7 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
                           <span className="pl-0.5 font-medium pointer-events-none text-gray-700 mix-blend-multiply text-xs sm:text-sm">%</span>
                         </div>
                       </td>
-                      <td className="border border-gray-300 p-0 relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10 bg-white group-hover:bg-gray-50 transition-colors align-top">
+                      <td className="border border-gray-300 p-0 relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10 bg-white group-hover:bg-gray-50 transition-colors align-top w-40 min-w-[140px]">
                         <SyncedInput
                           type="date"
                           value={task.start}
@@ -544,7 +588,7 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
                           className="w-full h-full min-h-[40px] px-3 py-1.5 bg-transparent outline-none text-gray-600 text-center text-xs sm:text-sm cursor-text uppercase"
                         />
                       </td>
-                      <td className="border border-gray-300 p-0 relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10 bg-white group-hover:bg-gray-50 transition-colors align-top">
+                      <td className="border border-gray-300 p-0 relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:z-10 bg-white group-hover:bg-gray-50 transition-colors align-top w-40 min-w-[140px]">
                         <SyncedInput
                           type="date"
                           value={task.end}
@@ -552,35 +596,6 @@ export default function Spreadsheet({ initiative, onUpdate, onBack }: Props) {
                           className="w-full h-full min-h-[40px] px-3 py-1.5 bg-transparent outline-none text-gray-600 text-center text-xs sm:text-sm cursor-text uppercase"
                         />
                       </td>
-                      {days.map((day, i) => {
-                        const taskStart = parseDate(task.start);
-                        const taskEnd = parseDate(task.end);
-                        let bgColor = "bg-white group-hover:bg-gray-50";
-                        let tooltipText = "";
-
-                        if (taskStart && taskEnd && day >= taskStart && day <= taskEnd) {
-                          const taskDuration = Math.round((taskEnd.getTime() - taskStart.getTime()) / (1000 * 3600 * 24)) + 1;
-                          const daysPassed = Math.round((day.getTime() - taskStart.getTime()) / (1000 * 3600 * 24));
-                          const completedDays = Math.round((task.progress / 100) * taskDuration);
-                          const remainingPercent = Math.max(0, 100 - task.progress);
-
-                          if (daysPassed < completedDays) {
-                            bgColor = "bg-[#92CDDC]"; // Celeste for completed progress
-                            tooltipText = `[Avance] Tarea: ${task.name}\nProgreso: ${task.progress}%\nFecha: ${day.toLocaleDateString()}`;
-                          } else {
-                            bgColor = "bg-[#8064a2]"; // Purple for remaining
-                            tooltipText = `[Pendiente / Falta] Tarea: ${task.name}\nFalta: ${remainingPercent}%\nFecha: ${day.toLocaleDateString()}`;
-                          }
-                        }
-
-                        return (
-                          <td 
-                            key={i} 
-                            className={`border border-gray-300 ${bgColor} transition-colors min-w-[24px] cursor-pointer`}
-                            title={tooltipText}
-                          ></td>
-                        );
-                      })}
                     </tr>
                   ))}
                 </React.Fragment>

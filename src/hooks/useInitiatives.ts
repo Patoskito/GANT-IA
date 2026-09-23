@@ -51,8 +51,18 @@ export function useInitiatives(userProfile: any) {
     await setDoc(doc(db, 'initiatives', initiative.id), initiative);
   };
 
-  const updateInitiative = async (id: string, field: keyof Initiative, value: any) => {
-    await updateDoc(doc(db, 'initiatives', id), { [field]: value });
+  const updateInitiative = async (id: string, field: keyof Initiative | Partial<Initiative>, value?: any) => {
+    try {
+      const updates = typeof field === 'string' ? { [field]: value } : field;
+      await updateDoc(doc(db, 'initiatives', id), updates);
+    } catch (e) {
+      console.warn("Error updating initiative in Firestore, applying local update:", e);
+      setInitiatives(prev => prev.map(init => {
+        if (init.id !== id) return init;
+        const updates = typeof field === 'string' ? { [field]: value } : field;
+        return { ...init, ...updates };
+      }));
+    }
   };
 
   const updateFullInitiative = async (initiative: Initiative) => {
