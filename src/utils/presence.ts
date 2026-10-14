@@ -38,6 +38,7 @@ export async function recordUserLogin(email: string, name?: string, role?: strin
 
     // Also update localStorage for instant offline access
     localStorage.setItem(`user_last_login_${normalizedEmail}`, nowIso);
+    localStorage.removeItem(`user_last_logout_${normalizedEmail}`);
   } catch (error) {
     console.error("Error recording user login in Firestore:", error);
   }
@@ -109,10 +110,22 @@ export function isUserActuallyOnline(
     lastActiveAt?: string;
     lastLoginAt?: string;
     lastLogoutAt?: string;
+    email?: string;
   },
   maxMinutes = 15
 ): boolean {
   if (user.isOnline === false) return false;
+
+  if (user.email) {
+    const localLogout = localStorage.getItem(`user_last_logout_${user.email.trim().toLowerCase()}`);
+    if (localLogout && user.lastLoginAt) {
+      const logoutTime = new Date(localLogout).getTime();
+      const loginTime = new Date(user.lastLoginAt).getTime();
+      if (!isNaN(logoutTime) && !isNaN(loginTime) && logoutTime >= loginTime) {
+        return false;
+      }
+    }
+  }
 
   // Si tiene registro de cierre de sesión posterior a su último ingreso, está desconectado
   if (user.lastLogoutAt && user.lastLoginAt) {

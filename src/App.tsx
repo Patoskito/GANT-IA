@@ -83,6 +83,26 @@ export default function App() {
     return () => clearInterval(interval);
   }, [userProfile?.email]);
 
+  // Detección de cierre de ventana / pestaña para registrar desconexión automática
+  useEffect(() => {
+    if (!userProfile?.email) return;
+
+    const handleWindowUnload = () => {
+      const email = userProfile.email;
+      const nowIso = new Date().toISOString();
+      localStorage.setItem(`user_last_logout_${email.trim().toLowerCase()}`, nowIso);
+      recordUserLogout(email, 'manual');
+    };
+
+    window.addEventListener('beforeunload', handleWindowUnload);
+    window.addEventListener('pagehide', handleWindowUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleWindowUnload);
+      window.removeEventListener('pagehide', handleWindowUnload);
+    };
+  }, [userProfile?.email]);
+
   const handleLogout = async (reason: 'manual' | 'inactivity' = 'manual') => {
     const emailToLogout = userProfile?.email;
     if (emailToLogout) {

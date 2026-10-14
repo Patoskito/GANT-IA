@@ -935,12 +935,6 @@ export default function Spreadsheet({ initiative, onUpdate, onBack, userProfile 
                 <React.Fragment key={phase.id}>
                   {/* Phase Row */}
                   <tr 
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = 'move';
-                      e.dataTransfer.setData('text/plain', `phase:${phaseIndex}`);
-                      setDraggedPhaseIdx(phaseIndex);
-                    }}
                     onDragOver={(e) => {
                       if (draggedPhaseIdx !== null) {
                         e.preventDefault();
@@ -956,10 +950,6 @@ export default function Spreadsheet({ initiative, onUpdate, onBack, userProfile 
                         handlePhaseDrop(phaseIndex);
                       }
                     }}
-                    onDragEnd={() => {
-                      setDraggedPhaseIdx(null);
-                      setDragOverPhaseIdx(null);
-                    }}
                     className={`border-b border-gray-200 group/phase transition-all ${
                       draggedPhaseIdx === phaseIndex ? "opacity-35 scale-[0.99]" : ""
                     } ${
@@ -971,6 +961,16 @@ export default function Spreadsheet({ initiative, onUpdate, onBack, userProfile 
                         <div className="flex items-center gap-1.5 flex-1 pl-1">
                           {/* Drag handle */}
                           <div 
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = 'move';
+                              e.dataTransfer.setData('text/plain', `phase:${phaseIndex}`);
+                              setDraggedPhaseIdx(phaseIndex);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedPhaseIdx(null);
+                              setDragOverPhaseIdx(null);
+                            }}
                             className="cursor-grab active:cursor-grabbing p-1 text-gray-700 hover:text-gray-950 rounded hover:bg-black/10 transition-colors shrink-0"
                             title="Arrastrar para mover fase hacia arriba o abajo"
                           >
@@ -1051,12 +1051,6 @@ export default function Spreadsheet({ initiative, onUpdate, onBack, userProfile 
                     return (
                       <tr 
                         key={task.id} 
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.effectAllowed = 'move';
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ phaseId: phase.id, taskIdx }));
-                          setDraggedTask({ phaseId: phase.id, taskIdx });
-                        }}
                         onDragOver={(e) => {
                           if (draggedTask) {
                             e.preventDefault();
@@ -1072,10 +1066,6 @@ export default function Spreadsheet({ initiative, onUpdate, onBack, userProfile 
                             handleTaskDrop(phase.id, taskIdx);
                           }
                         }}
-                        onDragEnd={() => {
-                          setDraggedTask(null);
-                          setDragOverTask(null);
-                        }}
                         className={`hover:bg-gray-50/80 transition-colors group/task ${
                           isTaskDragging ? "opacity-30 bg-blue-50/70 scale-[0.99]" : ""
                         } ${
@@ -1086,6 +1076,16 @@ export default function Spreadsheet({ initiative, onUpdate, onBack, userProfile 
                           <div className="flex items-center gap-1 w-full pr-1">
                             {/* Drag handle */}
                             <div 
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', JSON.stringify({ phaseId: phase.id, taskIdx }));
+                                setDraggedTask({ phaseId: phase.id, taskIdx });
+                              }}
+                              onDragEnd={() => {
+                                setDraggedTask(null);
+                                setDragOverTask(null);
+                              }}
                               className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-800 rounded hover:bg-gray-200 transition-colors shrink-0"
                               title="Arrastrar para mover fila hacia arriba o abajo"
                             >
