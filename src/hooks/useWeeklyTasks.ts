@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { WeeklyTask } from '../types';
+import { sanitizeForFirestore } from '../lib/firestoreUtils';
 
 export function useWeeklyTasks() {
   const [tasks, setTasks] = useState<WeeklyTask[]>([]);
@@ -30,7 +31,8 @@ export function useWeeklyTasks() {
 
   const addTask = async (task: WeeklyTask) => {
     try {
-      await setDoc(doc(db, 'weeklyTasks', task.id), task);
+      const clean = sanitizeForFirestore(task);
+      await setDoc(doc(db, 'weeklyTasks', task.id), clean);
     } catch (e) {
       console.error('Error adding weekly task', e);
     }
@@ -38,7 +40,8 @@ export function useWeeklyTasks() {
 
   const updateTask = async (id: string, updates: Partial<WeeklyTask>) => {
     try {
-      await updateDoc(doc(db, 'weeklyTasks', id), updates);
+      const clean = sanitizeForFirestore(updates);
+      await updateDoc(doc(db, 'weeklyTasks', id), clean);
     } catch (e) {
       console.error('Error updating weekly task', e);
     }

@@ -214,10 +214,15 @@ export const calculateEndDateFromStart = (startDateStr: string, weeks: number = 
   return formatDateSafe(end);
 };
 
+export interface DefaultTaskTemplate {
+  name: string;
+  assignedTo?: string;
+}
+
 export interface PhaseScheduleConfig {
   phaseNum: number;
   name: string;
-  defaultTaskName: string;
+  defaultTasks: (string | DefaultTaskTemplate)[];
   colorClass: string;
   startDayOffset: number;
   endDayOffset: number;
@@ -226,54 +231,119 @@ export interface PhaseScheduleConfig {
 export const PHASE_SCHEDULE_CONFIGS: PhaseScheduleConfig[] = [
   {
     phaseNum: 1,
-    name: "Fase 1: Levantamiento de información (semana 1)",
-    defaultTaskName: "1.1 Levantamiento de requerimientos e información",
-    colorClass: "bg-blue-100",
+    name: "Fase 1. Sinceramiento, Planificación y Evaluación de Riesgos (Semanas 1 - 2)",
+    defaultTasks: [
+      {
+        name: "1.1. Llevar a cabo la reunión de sinceramiento con el solicitante (Validación de dolores, ROI y mapeo estricto de datos reales) - Entregable: Acta de Inicio de Proyecto versión 1 (Borrador).",
+        assignedTo: "",
+      },
+      {
+        name: "1.2. Evaluar y clasificar el proyecto (Reunión entre Procesos, Desarrollador IA y Solicitante para auditar información) - Entregable: Acta de Inicio de Proyecto versión preliminar (V2).",
+        assignedTo: "Procesos + Desarrollador IA",
+      },
+      {
+        name: "1.3. Definir tratamiento de información según reglas de Seguridad de Proyectos IA (Evaluación de datos sensibles).",
+        assignedTo: "",
+      },
+      {
+        name: "1.4. Elaborar documento de alto riesgo y validar con área Legal y TI - Entregable: Documento de Evaluación de Riesgos / Certificado de Auditoría.",
+        assignedTo: "",
+      },
+      {
+        name: "1.5. Diseñar Escudo interno para auditoría con TI (Arquitectura base de seguridad).",
+        assignedTo: "",
+      },
+      {
+        name: "1.6. Evaluar y calcular scoring final (Beneficios vs TCO) - Entregable: Sustento financiero del proyecto.",
+        assignedTo: "",
+      },
+    ],
+    colorClass: "bg-purple-100",
     startDayOffset: 0,
-    endDayOffset: 6, // 7 days
+    endDayOffset: 13, // 14 days (Semanas 1 - 2)
   },
   {
     phaseNum: 2,
-    name: "Fase 2: Evaluación/Analisis de viabilidad del proyecto(semana 2)",
-    defaultTaskName: "2.1 Evaluación y análisis de viabilidad técnica/operativa",
-    colorClass: "bg-red-100",
-    startDayOffset: 7,
-    endDayOffset: 13, // 7 days
+    name: "Fase 2. Desarrollo IA y Documentación (Semanas 3 - 7)",
+    defaultTasks: [
+      {
+        name: "2.1. Realizar reunión de Kick Off con el Solicitante para ultimar detalles - Entregable: Acta de inicio de Proyecto versión Final.",
+        assignedTo: "",
+      },
+      {
+        name: "2.2. Evaluar arquitectura y UI/UX con Procesos.",
+        assignedTo: "Procesos + Desarrollador IA",
+      },
+      {
+        name: "2.3. Realizar Construcción lógica e Integración IA (Desarrollo del Backend, Frontend, BD y modelos).",
+        assignedTo: "",
+      },
+      {
+        name: "2.4. Testear el avance del desarrollo del proyecto (Pruebas continuas).",
+        assignedTo: "",
+      },
+      {
+        name: "2.5. Consolidar MVP (Unificación de módulos).",
+        assignedTo: "",
+      },
+      {
+        name: "2.6. Realizar actualización o relevamiento de documentación del Proyecto.",
+        assignedTo: "Procesos + Desarrollador IA",
+      },
+      {
+        name: "2.7. Realizar pruebas funcionales con dueño del proceso y responsable IA (Levantamiento de feedback para mejoras sin variar el alcance).",
+        assignedTo: "Procesos + Desarrollador IA",
+      },
+    ],
+    colorClass: "bg-amber-100",
+    startDayOffset: 14,
+    endDayOffset: 48, // 35 days (Semanas 3 - 7)
   },
   {
     phaseNum: 3,
-    name: "Fase 3: Desarrollo de proyecto (semana 3 - 7)",
-    defaultTaskName: "3.1 Desarrollo e implementación de la solución",
-    colorClass: "bg-green-100",
-    startDayOffset: 14,
-    endDayOffset: 48, // 35 days (5 weeks)
-  },
-  {
-    phaseNum: 4,
-    name: "Fase 4: Proyecto en ambiente QA (semana 8)",
-    defaultTaskName: "4.1 Pruebas de calidad y validación en ambiente QA",
-    colorClass: "bg-purple-100",
+    name: "Fase 3. Despliegue y Release (Semanas 8 - 9)",
+    defaultTasks: [
+      {
+        name: "3.1. Desplegar Release en QA.",
+        assignedTo: "",
+      },
+      {
+        name: "3.2. Ejecutar pruebas previas a salida en Producción (Ajustes finales de seguridad y estabilidad).",
+        assignedTo: "",
+      },
+      {
+        name: "3.3. Aprobación y validación final por Desarrollo.",
+        assignedTo: "",
+      },
+      {
+        name: "3.4. Generar manuales de usuario.",
+        assignedTo: "",
+      },
+      {
+        name: "3.5. Desplegar Release en Producción (Go-Live).",
+        assignedTo: "",
+      },
+      {
+        name: "3.6. Generar Acta de Cierre de Proyecto.",
+        assignedTo: "",
+      },
+    ],
+    colorClass: "bg-emerald-100",
     startDayOffset: 49,
-    endDayOffset: 55, // 7 days
-  },
-  {
-    phaseNum: 5,
-    name: "Fase 5: Despliegue de proyecto (MVP) (semana 9)",
-    defaultTaskName: "5.1 Despliegue en producción y pase a MVP",
-    colorClass: "bg-teal-100",
-    startDayOffset: 56,
-    endDayOffset: 62, // 7 days
+    endDayOffset: 62, // 14 days (Semanas 8 - 9)
   },
 ];
 
-export const getPhaseDateRanges = (startDateStr: string): { start: string; end: string }[] => {
+export const getPhaseDateRanges = (startDateStr: string, pauseOffsetDays: number = 0): { start: string; end: string }[] => {
   const base = parseDateSafe(startDateStr);
-  return PHASE_SCHEDULE_CONFIGS.map(cfg => {
+  return PHASE_SCHEDULE_CONFIGS.map((cfg, idx) => {
     if (!base) return { start: "", end: "" };
     const s = new Date(base.getTime());
-    s.setDate(s.getDate() + cfg.startDayOffset);
+    // Apply cumulative pause shift to phases after phase 1, or throughout
+    const offset = idx > 0 ? pauseOffsetDays : 0;
+    s.setDate(s.getDate() + cfg.startDayOffset + offset);
     const e = new Date(base.getTime());
-    e.setDate(e.getDate() + cfg.endDayOffset);
+    e.setDate(e.getDate() + cfg.endDayOffset + offset);
     return {
       start: formatDateSafe(s),
       end: formatDateSafe(e)
@@ -289,16 +359,18 @@ export const getDefaultPhases = (startDateStr?: string): Phase[] => {
     id: `phase-${now}-${idx + 1}`,
     name: cfg.name,
     colorClass: cfg.colorClass,
-    tasks: [
-      {
-        id: `task-${now}-${idx + 1}`,
-        name: cfg.defaultTaskName,
-        assignedTo: "",
+    tasks: cfg.defaultTasks.map((tItem, tIdx) => {
+      const taskName = typeof tItem === "string" ? tItem : tItem.name;
+      const assignedTo = typeof tItem === "string" ? "" : (tItem.assignedTo || "");
+      return {
+        id: `task-${now}-${idx + 1}-${tIdx + 1}`,
+        name: taskName,
+        assignedTo,
         progress: 0,
         start: ranges[idx]?.start || "",
         end: ranges[idx]?.end || "",
-      },
-    ],
+      };
+    }),
   }));
 };
 
@@ -307,16 +379,11 @@ export const distributePhaseDates = (phases?: Phase[], startDateStr?: string): P
     return getDefaultPhases(startDateStr);
   }
 
-  if (!startDateStr) {
-    return phases;
-  }
+  const ranges = startDateStr ? getPhaseDateRanges(startDateStr) : [];
 
-  const ranges = getPhaseDateRanges(startDateStr);
-
-  // If phases have fewer than 5 or different structure, we align each existing phase or pad with defaults
   return PHASE_SCHEDULE_CONFIGS.map((cfg, idx) => {
     const existingPhase = phases[idx];
-    const range = ranges[idx];
+    const range = ranges[idx] || { start: "", end: "" };
 
     if (!existingPhase) {
       const now = Date.now();
@@ -324,38 +391,44 @@ export const distributePhaseDates = (phases?: Phase[], startDateStr?: string): P
         id: `phase-${now}-${idx + 1}`,
         name: cfg.name,
         colorClass: cfg.colorClass,
-        tasks: [
-          {
-            id: `task-${now}-${idx + 1}`,
-            name: cfg.defaultTaskName,
-            assignedTo: "",
+        tasks: cfg.defaultTasks.map((tItem, tIdx) => {
+          const taskName = typeof tItem === "string" ? tItem : tItem.name;
+          const assignedTo = typeof tItem === "string" ? "" : (tItem.assignedTo || "");
+          return {
+            id: `task-${now}-${idx + 1}-${tIdx + 1}`,
+            name: taskName,
+            assignedTo,
             progress: 0,
             start: range.start,
             end: range.end,
-          },
-        ],
+          };
+        }),
       };
     }
 
     // Preserve existing phase name if customized, or use standard name if it's generic
     const name = existingPhase.name.startsWith("Fase") ? existingPhase.name : cfg.name;
-    const tasks = (existingPhase.tasks && existingPhase.tasks.length > 0)
-      ? existingPhase.tasks.map((t) => ({
+    let phaseTasks = existingPhase.tasks || [];
+
+    const tasks = (phaseTasks.length > 0)
+      ? phaseTasks.map((t) => ({
           ...t,
           // Respect each phase's assigned date range
-          start: range.start,
-          end: range.end,
+          start: range.start || t.start || "",
+          end: range.end || t.end || "",
         }))
-      : [
-          {
-            id: `task-${Date.now()}-${idx + 1}`,
-            name: cfg.defaultTaskName,
-            assignedTo: "",
+      : cfg.defaultTasks.map((tItem, tIdx) => {
+          const taskName = typeof tItem === "string" ? tItem : tItem.name;
+          const assignedTo = typeof tItem === "string" ? "" : (tItem.assignedTo || "");
+          return {
+            id: `task-${Date.now()}-${idx + 1}-${tIdx + 1}`,
+            name: taskName,
+            assignedTo,
             progress: 0,
             start: range.start,
             end: range.end,
-          },
-        ];
+          };
+        });
 
     return {
       ...existingPhase,

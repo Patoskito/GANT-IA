@@ -6,6 +6,8 @@ export interface Task {
   progressHistory?: { date: string; progress: number }[];
   start: string;
   end: string;
+  completedAt?: string;
+  completedBy?: string;
 }
 
 export interface Phase {
@@ -20,6 +22,7 @@ export interface Initiative {
   name: string;
   responsible?: string;
   responsible2?: string;
+  priority?: 'Alta' | 'Media' | 'Baja' | string;
   area?: string;
   areaResponsible?: string;
   areaContact?: string;
@@ -46,6 +49,22 @@ export interface Initiative {
   horasDesarrollo?: number;
   costoHoraIt?: number;
   costoSetup?: number;
+  // Pause management & traceability
+  pauseReason?: string;
+  pausedAt?: string;
+  pausedBy?: string;
+  pauseHistory?: PauseRecord[];
+}
+
+export interface PauseRecord {
+  id: string;
+  pausedAt: string;
+  reason: string;
+  pausedBy?: string;
+  resumedAt?: string;
+  resumedBy?: string;
+  resumeComment?: string;
+  daysPaused?: number;
 }
 
 export interface WeeklyTask {

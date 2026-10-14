@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Clock } from 'lucide-react';
 import { USER_DICTIONARY } from '../utils/userMapping';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { recordUserLogin } from '../utils/presence';
 
 interface AuthProps {
-  onLogin: (user: { name: string, email: string }) => void;
+  onLogin: (user: { name: string, email: string, role?: string }) => void;
+  sessionExpiredMessage?: string | null;
 }
 
-export default function Auth({ onLogin }: AuthProps) {
+export default function Auth({ onLogin, sessionExpiredMessage }: AuthProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,10 +56,16 @@ export default function Auth({ onLogin }: AuthProps) {
       }
       
       const mappedName = USER_DICTIONARY[email] || (foundUser ? foundUser.name : '');
-      
+      const userRole = email === 'kayme@flesan.com.pe' ? 'Administrador' : (foundUser?.role || 'Usuario');
+      const userName = mappedName || email.split('@')[0] || 'Usuario';
+
+      // Mapear y registrar la hora de ingreso en Firestore
+      await recordUserLogin(email, userName, userRole);
+
       onLogin({
-        name: mappedName || email.split('@')[0] || 'Usuario',
-        email: email
+        name: userName,
+        email: email,
+        role: userRole
       });
       localStorage.setItem('local_auth_email', email);
     } catch (err: any) {
@@ -76,6 +84,16 @@ export default function Auth({ onLogin }: AuthProps) {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Iniciativas IA 2026</h1>
         <p className="text-gray-500 mb-6">Inicia sesión para continuar</p>
         
+        {sessionExpiredMessage && (
+          <div className="w-full bg-amber-50 border border-amber-200 text-amber-900 p-3.5 rounded-xl text-xs mb-4 flex items-start gap-2.5 text-left shadow-2xs">
+            <Clock size={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-800">Sesión expirada por inactividad</p>
+              <p className="text-amber-700 mt-0.5 leading-relaxed">{sessionExpiredMessage}</p>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="w-full bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
             {error}

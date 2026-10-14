@@ -3,6 +3,7 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'fireb
 import { db } from '../lib/firebase';
 import { Initiative } from '../types';
 import { initialInitiatives } from '../data';
+import { sanitizeForFirestore } from '../lib/firestoreUtils';
 
 export function useInitiatives(userProfile: any) {
   const [initiatives, setInitiatives] = useState<Initiative[]>([]);
@@ -26,7 +27,7 @@ export function useInitiatives(userProfile: any) {
         const seedData = async () => {
           try {
             for (const init of initialInitiatives) {
-              await setDoc(doc(db, 'initiatives', init.id), init);
+              await setDoc(doc(db, 'initiatives', init.id), sanitizeForFirestore(init));
             }
           } catch (e) {
             console.warn("Could not seed Firestore, using local fallback:", e);
@@ -48,29 +49,47 @@ export function useInitiatives(userProfile: any) {
   }, [userProfile]);
 
   const addInitiative = async (initiative: Initiative) => {
-    await setDoc(doc(db, 'initiatives', initiative.id), initiative);
+    try {
+      const clean = sanitizeForFirestore(initiative);
+      await setDoc(doc(db, 'initiatives', initiative.id), clean);
+    } catch (e) {
+      console.warn("Error adding initiative in Firestore, applying local state:", e);
+      setInitiatives(prev => [...prev.filter(i => i.id !== initiative.id), initiative]);
+    }
   };
 
   const updateInitiative = async (id: string, field: keyof Initiative | Partial<Initiative>, value?: any) => {
     try {
-      const updates = typeof field === 'string' ? { [field]: value } : field;
+      const rawUpdates = typeof field === 'string' ? { [field]: value } : field;
+      const updates = sanitizeForFirestore(rawUpdates);
       await updateDoc(doc(db, 'initiatives', id), updates);
     } catch (e) {
       console.warn("Error updating initiative in Firestore, applying local update:", e);
       setInitiatives(prev => prev.map(init => {
         if (init.id !== id) return init;
-        const updates = typeof field === 'string' ? { [field]: value } : field;
-        return { ...init, ...updates };
+        const rawUpdates = typeof field === 'string' ? { [field]: value } : field;
+        return { ...init, ...rawUpdates };
       }));
     }
   };
 
   const updateFullInitiative = async (initiative: Initiative) => {
-    await setDoc(doc(db, 'initiatives', initiative.id), initiative);
+    try {
+      const clean = sanitizeForFirestore(initiative);
+      await setDoc(doc(db, 'initiatives', initiative.id), clean);
+    } catch (e) {
+      console.warn("Error updating full initiative in Firestore, applying local update:", e);
+      setInitiatives(prev => prev.map(init => init.id === initiative.id ? initiative : init));
+    }
   };
 
   const deleteInitiative = async (id: string) => {
-    await deleteDoc(doc(db, 'initiatives', id));
+    try {
+      await deleteDoc(doc(db, 'initiatives', id));
+    } catch (e) {
+      console.warn("Error deleting initiative in Firestore, applying local update:", e);
+      setInitiatives(prev => prev.filter(init => init.id !== id));
+    }
   };
 
   return {

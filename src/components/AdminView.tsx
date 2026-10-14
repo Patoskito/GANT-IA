@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Settings, Shield, Database, Users, Sliders, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Settings, Shield, Database, Users, Sliders, CheckCircle, Eye, EyeOff, Clock } from 'lucide-react';
 import { Initiative } from '../types';
 import { db } from '../lib/firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { formatConnectionTimestamp, isUserActuallyOnline } from '../utils/presence';
 
 interface AdminViewProps {
   initiatives: Initiative[];
@@ -78,6 +79,12 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
     email: string;
     role: string;
     password?: string;
+    photoURL?: string;
+    lastLoginAt?: string;
+    lastActiveAt?: string;
+    lastLogoutAt?: string;
+    logoutReason?: string;
+    isOnline?: boolean;
   }
 
   const [appUsers, setAppUsers] = useState<AppUser[]>([]);
@@ -94,7 +101,13 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
           name: doc.data().name || '',
           email: doc.data().email || '',
           role: doc.data().role || 'Usuario',
-          password: doc.data().password || ''
+          password: doc.data().password || '',
+          photoURL: doc.data().photoURL || '',
+          lastLoginAt: doc.data().lastLoginAt || '',
+          lastActiveAt: doc.data().lastActiveAt || '',
+          lastLogoutAt: doc.data().lastLogoutAt || '',
+          logoutReason: doc.data().logoutReason || '',
+          isOnline: Boolean(doc.data().isOnline),
         }));
         setAppUsers(loadedUsers);
       } catch (error) {
@@ -380,6 +393,7 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Correo</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Última Conexión</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contraseña</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
                       </tr>
@@ -387,22 +401,42 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {usersLoading ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-sm text-gray-500">
+                          <td colSpan={6} className="py-8 text-center text-sm text-gray-500">
                             Cargando usuarios...
                           </td>
                         </tr>
                       ) : appUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-sm text-gray-500">
+                          <td colSpan={6} className="py-8 text-center text-sm text-gray-500">
                             No hay usuarios registrados
                           </td>
                         </tr>
                       ) : (
                         appUsers.map((u) => {
                           const showPass = visiblePasswords[u.id] || false;
+                          const isOnline = isUserActuallyOnline(u, 15);
+                          const loginConn = u.lastLoginAt ? formatConnectionTimestamp(u.lastLoginAt) : null;
+                          const logoutConn = u.lastLogoutAt ? formatConnectionTimestamp(u.lastLogoutAt) : null;
+                          const initials = (u.email ? u.email.slice(0, 2) : "US").toUpperCase();
+
                           return (
-                          <tr key={u.id} className="hover:bg-gray-50">
-                          <td className="py-3 px-4 text-sm font-medium text-gray-800">{u.name}</td>
+                          <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-4 text-sm font-medium text-gray-800">
+                            <div className="flex items-center gap-2.5">
+                              {u.photoURL ? (
+                                <img
+                                  src={u.photoURL}
+                                  alt={u.name}
+                                  className="w-7 h-7 rounded-full object-cover border border-gray-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-linear-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 uppercase">
+                                  {initials}
+                                </div>
+                              )}
+                              <span className="truncate">{u.name}</span>
+                            </div>
+                          </td>
                           <td className="py-3 px-4 text-sm text-gray-500">{u.email}</td>
                           <td className="py-3 px-4 text-sm">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -411,6 +445,49 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                               {u.role === 'Administrador' && <Shield size={10} />}
                               {u.role}
                             </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {!u.lastLoginAt && !u.lastActiveAt ? (
+                              <span className="text-xs text-gray-400 italic flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                Sin ingresos
+                              </span>
+                            ) : (
+                              <div className="flex flex-col gap-0.5">
+                                {isOnline ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                      En línea ahora
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                                      Desconectado
+                                    </span>
+                                  </div>
+                                )}
+
+                                {u.lastLoginAt && (
+                                  <span className="text-[10px] text-gray-600 font-medium flex items-center gap-1 mt-0.5">
+                                    <span className="text-emerald-600 font-bold">🟢 Ingreso:</span>
+                                    <span>{loginConn?.badge}</span>
+                                  </span>
+                                )}
+
+                                {!isOnline && u.lastLogoutAt && (
+                                  <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                    <span className="text-red-500 font-bold">🔴 Cierre:</span>
+                                    <span>
+                                      {logoutConn?.badge}
+                                      {u.logoutReason === 'inactivity' ? ' (Inactividad 15m)' : ''}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-600 font-mono">
                             <div className="flex items-center gap-2">
@@ -431,7 +508,7 @@ export default function AdminView({ initiatives, onBack, userProfile }: AdminVie
                             {u.email !== 'kayme@flesan.com.pe' && (
                               <button
                                 onClick={() => removeUser(u.id)}
-                                className="text-red-500 hover:text-red-700 text-xs font-semibold px-2.5 py-1 rounded border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
+                                className="text-red-500 hover:text-red-700 text-xs font-semibold px-2.5 py-1 rounded border border-red-200 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
                               >
                                 Eliminar
                               </button>
